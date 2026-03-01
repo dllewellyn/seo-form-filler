@@ -6,6 +6,17 @@ TrelloPowerUp.initialize({
     'card-buttons': function (t, options) {
         return [
             {
+                icon: 'https://cdn.glitch.com/1b42d7ef-15b3-40ac-9082-a31fb2dcb274%2Fedit.svg',
+                text: 'Generate Profile',
+                callback: function (t) {
+                    return t.alert({
+                        message: 'Profile Generator Agent triggered (Simulated webhook fire)',
+                        duration: 3,
+                        display: 'info'
+                    });
+                }
+            },
+            {
                 icon: 'https://cdn.glitch.com/1b42d7ef-15b3-40ac-9082-a31fb2dcb274%2Fsearch.svg',
                 text: 'Find Directories',
                 callback: function (t) {

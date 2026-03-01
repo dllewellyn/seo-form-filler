@@ -25,7 +25,26 @@ func InitAgents(ctx context.Context) (map[string]agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create model: %v", err)
 	}
 
-	// 1. Researcher Agent
+	// 1. Profile Generator Agent
+	profileGenerator, err := llmagent.New(llmagent.Config{
+		Name:        "profile_generator_agent",
+		Model:       model,
+		Description: "Scrapes the user's main website and generates a comprehensive SEO Master Profile.",
+		Instruction: `You are an expert SEO Strategist. 
+		You will be given the URL or HTML of a target website. 
+		Extract and generate a Master Company Profile including:
+		- Short Description (max 150 chars)
+		- Long Description (max 500 chars)
+		- Primary SEO Keywords (array of strings)
+		- Founder/Contact Name if available.
+		Format the output as structured JSON matching these fields.`,
+		Tools: nil,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Profile Generator Agent: %v", err)
+	}
+
+	// 2. Researcher Agent
 	researcher, err := llmagent.New(llmagent.Config{
 		Name:        "researcher_agent",
 		Model:       model,
@@ -37,7 +56,7 @@ func InitAgents(ctx context.Context) (map[string]agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create Researcher Agent: %v", err)
 	}
 
-	// 2. Form Filler Agent
+	// 3. Form Filler Agent
 	formFiller, err := llmagent.New(llmagent.Config{
 		Name:        "form_filler_agent",
 		Model:       model,
@@ -51,7 +70,7 @@ func InitAgents(ctx context.Context) (map[string]agent.Agent, error) {
 		return nil, fmt.Errorf("failed to create Form Filler Agent: %v", err)
 	}
 
-	// 3. Pitch Agent
+	// 4. Pitch Agent
 	pitchAgent, err := llmagent.New(llmagent.Config{
 		Name:        "pitch_agent",
 		Model:       model,
@@ -64,9 +83,10 @@ func InitAgents(ctx context.Context) (map[string]agent.Agent, error) {
 	}
 
 	agents := map[string]agent.Agent{
-		"researcher":  researcher,
-		"form_filler": formFiller,
-		"pitch":       pitchAgent,
+		"profile_generator": profileGenerator,
+		"researcher":        researcher,
+		"form_filler":       formFiller,
+		"pitch":             pitchAgent,
 	}
 
 	return agents, nil
