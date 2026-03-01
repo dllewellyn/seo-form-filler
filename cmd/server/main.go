@@ -30,6 +30,11 @@ func main() {
 	fs := http.FileServer(http.Dir("./powerup"))
 	http.Handle("/powerup/", http.StripPrefix("/powerup/", fs))
 
+	// Explicitly serve index.html to avoid 301 redirects to `./`
+	http.HandleFunc("/powerup/index.html", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./powerup/index.html")
+	})
+
 	// Trello Webhook Endpoint
 	http.HandleFunc("/api/trello/webhook", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodHead {
