@@ -1,15 +1,16 @@
 #!/bin/bash
 # script to easily register a trello webhook.
 
-# You need your API key and Token from https://trello.com/app-key
-API_KEY="your-trello-api-key"
-API_TOKEN="your-trello-api-token"
+echo "Trello Webhook Setup script"
+echo "---------------------------"
+echo "You can find your API key and Token at: https://trello.com/app-key"
 
-# The ID of the model you want to monitor (e.g., a Board ID or a List ID)
-ID_MODEL="your-board-or-list-id"
+read -p "Enter your Trello API Key: " API_KEY
+read -p "Enter your Trello API Token: " API_TOKEN
+read -p "Enter your Trello Board ID (or List ID): " ID_MODEL
+read -p "Enter your Ngrok URL (e.g., https://123-abc.ngrok.app): " NGROK_URL
 
-# The URL of your Go running application (e.g., your ngrok URL)
-CALLBACK_URL="https://your-ngrok-url.app/api/trello/webhook"
+CALLBACK_URL="${NGROK_URL}/api/trello/webhook"
 
 curl -X POST -H "Content-Type: application/json" \
 https://api.trello.com/1/webhooks/ \

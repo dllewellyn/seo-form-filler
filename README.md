@@ -59,12 +59,7 @@ go run cmd/server/main.go
    - For Trello to tell the Go server when a button is clicked, we need a Webhook mapping your Trello Board to your server.
    - Get your **API Key** and **API Token** from [Trello Power-Up Admin](https://trello.com/app-key).
    - Get your **Board ID** (Add `.json` to the end of your Trello board URL in the browser and look for the `"id": "..."` field right at the top).
-   - We've provided a helper script to register the webhook. Edit `cmd/setup/create_webhook.sh` with your keys, Board ID, and ngrok URL:
-     ```bash
-     nano cmd/setup/create_webhook.sh
-     # Fill in API_KEY, API_TOKEN, ID_MODEL, and CALLBACK_URL
-     ```
-   - Run the script:
+   - We've provided an interactive helper script to register the webhook. Run the script and it will prompt you for your keys, Board ID, and ngrok URL:
      ```bash
      bash cmd/setup/create_webhook.sh
      ```
