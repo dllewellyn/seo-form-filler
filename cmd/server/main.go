@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/dllewellyn/seo-backlink-trello/internal/agent"
-	"github.com/dllewellyn/seo-backlink-trello/internal/trello"
+	"github.com/dllewellyn/seo-backlink-trello/internal/db"
 )
 
 func main() {
@@ -17,7 +17,17 @@ func main() {
 		port = "8080"
 	}
 
+	// Set Emulator Host for local development
+	os.Setenv("FIRESTORE_EMULATOR_HOST", "localhost:8081")
+
 	ctx := context.Background()
+
+	// Initialize Database
+	dbClient, err := db.InitFirestore(ctx)
+	if err != nil {
+		log.Fatalf("Failed to connect to Firestore: %v", err)
+	}
+	defer dbClient.Firestore.Close()
 
 	// Initialize ADK Agents
 	agents, err := agent.InitAgents(ctx)
@@ -26,32 +36,37 @@ func main() {
 	}
 	log.Printf("Successfully loaded %d agents", len(agents))
 
-	// Serve Static Files for Trello Power-Up
-	fs := http.FileServer(http.Dir("./powerup"))
-	http.Handle("/powerup/", http.StripPrefix("/powerup/", fs))
+	// Serve React UI from ui/dist
+	fs := http.FileServer(http.Dir("./ui/dist"))
+	http.Handle("/", fs)
 
-	// Explicitly serve index.html to avoid 301 redirects to `./`
-	http.HandleFunc("/powerup/index.html", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./powerup/index.html")
+	// API Endpoints
+	http.HandleFunc("/api/profile/generate", func(w http.ResponseWriter, r *http.Request) {
+		// TODO: Implement Profile Generator Agent
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotImplemented)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Not implemented"})
 	})
 
-	// Trello Webhook Endpoint
-	http.HandleFunc("/api/trello/webhook", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodHead {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
+	http.HandleFunc("/api/profile", func(w http.ResponseWriter, r *http.Request) {
+		// TODO: Implement Update Profile
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotImplemented)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Not implemented"})
+	})
 
-		var payload trello.WebhookPayload
-		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
+	http.HandleFunc("/api/research/start", func(w http.ResponseWriter, r *http.Request) {
+		// TODO: Implement Researcher Agent logic
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotImplemented)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Not implemented"})
+	})
 
-		// Handle asynchronous Trello events (e.g. moving a card to 'Shortlist')
-		go trello.HandleWebhook(ctx, payload)
-
-		w.WriteHeader(http.StatusOK)
+	http.HandleFunc("/api/pitch/draft", func(w http.ResponseWriter, r *http.Request) {
+		// TODO: Implement Pitch Agent
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotImplemented)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Not implemented"})
 	})
 
 	// Chrome Extension Autofill Endpoint
