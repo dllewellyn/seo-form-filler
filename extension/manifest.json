@@ -1,0 +1,31 @@
+{
+    "manifest_version": 3,
+    "name": "SEO Autofill Agent",
+    "version": "1.0",
+    "description": "AI-powered form filler for SEO backlink submission",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+    ],
+    "host_permissions": [
+        "http://localhost:8080/*",
+        "https://*/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_title": "Autofill Page"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content.js"
+            ]
+        }
+    ]
+}
