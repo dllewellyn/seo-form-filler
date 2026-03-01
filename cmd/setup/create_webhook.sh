@@ -12,15 +12,13 @@ read -p "Enter your Ngrok URL (e.g., https://123-abc.ngrok.app): " NGROK_URL
 
 CALLBACK_URL="${NGROK_URL}/api/trello/webhook"
 
-curl -X POST -H "Content-Type: application/json" \
-https://api.trello.com/1/webhooks/ \
+curl -s -X POST -H "Content-Type: application/json" \
+"https://api.trello.com/1/webhooks/?key=${API_KEY}&token=${API_TOKEN}" \
 -d '{
-  "key": "'$API_KEY'",
-  "token": "'$API_TOKEN'",
   "callbackURL": "'$CALLBACK_URL'",
   "idModel":"'$ID_MODEL'",
   "description": "SEO Backlink Webhook"
 }'
 
 echo ""
-echo "Webhook creation request sent."
+echo "Webhook creation request finished."
