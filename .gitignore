@@ -37,6 +37,8 @@ pip-log.txt
 firebase-debug.log
 firebase-debug.*.log
 .firebase/
+firebase-export/
+ui/.firebase/
 
 # Environment variables
 .env
