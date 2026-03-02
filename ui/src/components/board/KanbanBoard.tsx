@@ -1,4 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { db } from '../../lib/firebase';
+import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
+
 import {
     DndContext,
     DragOverlay,
@@ -19,18 +22,24 @@ const defaultCols: Column[] = [
     { id: 'in-progress', title: 'In Progress' },
     { id: 'submitted', title: 'Submitted' },
     { id: 'contacted', title: 'Contacted' },
-];
-
-const defaultTargets: Target[] = [
-    { id: '1', columnId: 'shortlist', domain: 'startup.io', url: 'https://startup.io/submit', targetUrl: 'https://example.com' },
-    { id: '2', columnId: 'shortlist', domain: 'techcrunch.com', url: 'https://techcrunch.com/submit', targetUrl: 'https://example.com' },
-    { id: '3', columnId: 'in-progress', domain: 'producthunt.com', url: 'https://producthunt.com/new', targetUrl: 'https://example.com', pitchDraft: 'Hey PH team, we have a great tool...' },
+    { id: 'rejected', title: 'Rejected' },
 ];
 
 export default function KanbanBoard() {
     const [columns] = useState<Column[]>(defaultCols);
-    const [targets, setTargets] = useState<Target[]>(defaultTargets);
+    const [targets, setTargets] = useState<Target[]>([]);
     const [activeTarget, setActiveTarget] = useState<Target | null>(null);
+
+    useEffect(() => {
+        const unsubscribe = onSnapshot(collection(db, "targets"), (snapshot) => {
+            const dbTargets = snapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id
+            })) as Target[];
+            setTargets(dbTargets);
+        });
+        return () => unsubscribe();
+    }, []);
 
     const columnsId = useMemo(() => columns.map((col) => col.id), [columns]);
 
@@ -40,7 +49,7 @@ export default function KanbanBoard() {
     );
 
     return (
-        <div className="p-8 w-full h-full overflow-x-auto">
+        <div className="w-full h-full overflow-x-auto custom-scrollbar">
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCorners}
@@ -48,7 +57,7 @@ export default function KanbanBoard() {
                 onDragOver={onDragOver}
                 onDragEnd={onDragEnd}
             >
-                <div className="flex gap-6 h-full items-start">
+                <div className="flex gap-6 h-full items-start p-8 min-w-max">
                     <SortableContext items={columnsId}>
                         {columns.map((col) => (
                             <ColumnContainer
@@ -100,7 +109,9 @@ export default function KanbanBoard() {
                 const overIndex = targets.findIndex((t) => t.id === over.id);
 
                 if (targets[activeIndex].columnId !== targets[overIndex].columnId) {
-                    targets[activeIndex].columnId = targets[overIndex].columnId;
+                    const newColumnId = targets[overIndex].columnId;
+                    targets[activeIndex].columnId = newColumnId;
+                    updateDoc(doc(db, "targets", active.id.toString()), { columnId: newColumnId }).catch(console.error);
                     return arrayMove(targets, activeIndex, overIndex - 1);
                 }
 
@@ -114,7 +125,9 @@ export default function KanbanBoard() {
         if (isActiveATarget && isOverAColumn) {
             setTargets((targets) => {
                 const activeIndex = targets.findIndex((t) => t.id === active.id);
-                targets[activeIndex].columnId = over.id;
+                const newColumnId = over.id;
+                targets[activeIndex].columnId = newColumnId;
+                updateDoc(doc(db, "targets", active.id.toString()), { columnId: newColumnId }).catch(console.error);
                 return arrayMove(targets, activeIndex, activeIndex);
             });
         }

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Agent</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background-color: #f8fafc;
+            color: #334155;
+        }
+        h1 {
+            font-size: 1.25rem;
+            margin-top: 0;
+            color: #0f172a;
+        }
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .btn {
+            display: inline-block;
+            width: 100%;
+            padding: 8px 16px;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.2s;
+            margin-top: 8px;
+        }
+        .btn:hover {
+            background-color: #1d4ed8;
+        }
+        .btn:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+        .target-item {
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            background-color: #f1f5f9;
+        }
+        .target-domain {
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .status {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 12px;
+            background-color: #dbeafe;
+            color: #1e40af;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        #error-msg {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 8px;
+            display: none;
+        }
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 8px;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        .filter-container {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .filter-select {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            background: white;
+            font-size: 0.875rem;
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>SEO Backlink Agent</h1>
+
+    <div class="section">
+        <div class="section-title">Active Profile</div>
+        <div id="profile-summary">Loading profile...</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Current Tab Actions</div>
+        <button id="autofill-btn" class="btn">Autofill Target Form</button>
+        <div style="margin-top: 12px;">
+            <label for="manual-error-input" style="font-size: 0.75rem; font-weight: 500; color: #64748b; margin-bottom: 4px; display: block;">Manual Error Context (Optional)</label>
+            <textarea id="manual-error-input" rows="3" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-family: inherit; font-size: 0.875rem; resize: vertical;" placeholder="Paste any validation errors the AI missed here..."></textarea>
+        </div>
+        <div id="action-loader" class="loader">Analyzing form...</div>
+        <div id="error-msg"></div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Shortlisted Targets</div>
+        <div class="filter-container">
+            <select id="status-filter" class="filter-select">
+                <option value="all">All Statuses</option>
+                <option value="shortlist">Shortlist</option>
+                <option value="in-progress">In Progress</option>
+                <option value="submitted">Submitted</option>
+                <option value="contacted">Contacted</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+        <div id="targets-list">Loading targets...</div>
+    </div>
+
+    <script src="sidepanel.js"></script>
+</body>
+</html>

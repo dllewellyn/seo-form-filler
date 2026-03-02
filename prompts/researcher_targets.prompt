@@ -1,0 +1,20 @@
+---
+model: googleai/gemini-3-pro-preview
+input:
+  schema:
+    company_profile: any
+    existing_targets: string
+---
+Here is the company profile:
+{{company_profile}}
+
+Existing targets (DO NOT RETURN THESE):
+{{existing_targets}}
+
+Find 20 NEW backlink opportunities for this company:
+- 10 targets must be highly relevant, high-quality, niche submission directories or platforms specific to the company's industry.
+- 10 targets should be more generic business directories or listings with simpler submission processes (e.g. general startup lists, business aggregators).
+
+Return the result EXACTLY as a JSON array of objects with fields:
+- "domain": string (e.g. "producthunt.com")
+- "url": string (e.g. "https://producthunt.com/new")

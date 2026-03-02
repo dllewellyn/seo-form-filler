@@ -1,0 +1,185 @@
+package handlers
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/dllewellyn/seo-backlink-trello/internal/db"
+	adkagent "google.golang.org/adk/agent"
+	"google.golang.org/adk/runner"
+	session "google.golang.org/adk/session"
+	"google.golang.org/genai"
+)
+
+func (h *Handlers) ProfileGenerate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		URL string `json:"url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Generating profile for URL: %s", req.URL)
+
+	// 1. Fetch HTML
+	resp, err := http.Get(req.URL)
+	if err != nil {
+		http.Error(w, "Failed to fetch URL", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Let's just use a buffer to read the first 100kb
+	buf := make([]byte, 100000)
+	n, _ := io.ReadFull(resp.Body, buf)
+	if n == 0 {
+		n, _ = resp.Body.Read(buf)
+	}
+	htmlContent := string(buf[:n])
+
+	// 2. Call the ADK Agent via Runner
+	profileAgent := h.Agents["profile_generator"]
+	if profileAgent == nil {
+		http.Error(w, "Profile generator agent not found", http.StatusInternalServerError)
+		return
+	}
+
+	agentRunner, err := runner.New(runner.Config{
+		AppName:        "BacklinkEngine",
+		Agent:          profileAgent,
+		SessionService: h.Session,
+	})
+	if err != nil {
+		log.Printf("Runner init failed: %v", err)
+		http.Error(w, "Runner failed", http.StatusInternalServerError)
+		return
+	}
+
+	prompt := fmt.Sprintf("Here is the HTML context for %s:\n%s", req.URL, htmlContent)
+
+	ctx := context.Background()
+	sessID := fmt.Sprintf("session-%d", time.Now().UnixNano())
+	_, err = h.Session.Create(ctx, &session.CreateRequest{
+		SessionID: sessID,
+		AppName:   "BacklinkEngine",
+		UserID:    "user-id",
+	})
+	if err != nil {
+		log.Printf("Session create failed: %v", err)
+	}
+
+	iter := agentRunner.Run(ctx, "user-id", sessID,
+		&genai.Content{Parts: []*genai.Part{{Text: prompt}}, Role: "user"},
+		adkagent.RunConfig{})
+
+	rawOutput := ""
+	for ev, err := range iter {
+		if err != nil {
+			log.Printf("Agent run stream error: %v", err)
+			http.Error(w, "Agent generation failed", http.StatusInternalServerError)
+			return
+		}
+
+		// Extract from model's response parts
+		if ev != nil && ev.Content != nil {
+			for _, part := range ev.Content.Parts {
+				if part.Text != "" {
+					rawOutput += part.Text
+				}
+			}
+		}
+	}
+
+	if rawOutput == "" {
+		http.Error(w, "Invalid agent response", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("DEBUG: Raw Output from Agent: %s", rawOutput)
+
+	// Keep only the JSON object by finding the first '{' and last '}'
+	startIdx := strings.Index(rawOutput, "{")
+	endIdx := strings.LastIndex(rawOutput, "}")
+
+	if startIdx != -1 && endIdx != -1 && endIdx > startIdx {
+		rawOutput = rawOutput[startIdx : endIdx+1]
+	} else {
+		// fallback to stripping backticks if curly braces didn't enclose it correctly
+		if len(rawOutput) > 7 && rawOutput[:7] == "```json" {
+			rawOutput = rawOutput[7:]
+			if rawOutput[len(rawOutput)-3:] == "```" {
+				rawOutput = rawOutput[:len(rawOutput)-3]
+			}
+		}
+	}
+
+	var result struct {
+		CompanyProfile db.Profile `json:"company_profile"`
+	}
+
+	if err := json.Unmarshal([]byte(rawOutput), &result); err != nil {
+		log.Printf("Failed to parse agent JSON: %s\nError: %v", rawOutput, err)
+		http.Error(w, "Failed to parse profile", http.StatusInternalServerError)
+		return
+	}
+
+	profile := result.CompanyProfile
+
+	// Fallback if LLM didn't use the wrapper
+	if profile.ShortDescription == "" && profile.LongDescription == "" {
+		if err := json.Unmarshal([]byte(rawOutput), &profile); err != nil {
+			log.Printf("Failed to parse agent JSON fallback: %s\nError: %v", rawOutput, err)
+		}
+	}
+
+	profile.TargetURL = req.URL
+
+	// 4. Save to Firestore (upsert)
+	_, err = h.DB.Firestore.Collection("profiles").Doc("master").Set(ctx, profile)
+	if err != nil {
+		log.Printf("Failed to save to Firestore: %v", err)
+		http.Error(w, "Failed to save profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(profile)
+}
+
+func (h *Handlers) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var profile db.Profile
+	if err := json.NewDecoder(r.Body).Decode(&profile); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	profile.ID = "master" // Hardcode for demo
+
+	ctx := context.Background()
+	_, err := h.DB.Firestore.Collection("profiles").Doc("master").Set(ctx, profile)
+	if err != nil {
+		log.Printf("Failed to update profile: %v", err)
+		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}

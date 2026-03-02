@@ -11,11 +11,16 @@ import (
 )
 
 // Profile represents the user's master company profile
+// Profile represents the user's master company profile
 type Profile struct {
-	ShortDescription string   `json:"shortDescription"`
-	LongDescription  string   `json:"longDescription"`
-	Keywords         []string `json:"keywords"`
-	FounderName      string   `json:"founderName,omitempty"`
+	ID               string            `json:"id" firestore:"id,omitempty"`
+	TargetURL        string            `json:"targetUrl" firestore:"targetUrl,omitempty"`
+	CompanyName      string            `json:"companyName" firestore:"companyName"`
+	ShortDescription string            `json:"shortDescription" firestore:"shortDescription"`
+	LongDescription  string            `json:"longDescription" firestore:"longDescription"`
+	Keywords         []string          `json:"keywords" firestore:"keywords"`
+	FounderName      string            `json:"founderName,omitempty" firestore:"founderName,omitempty"`
+	DynamicFields    map[string]string `json:"dynamicFields" firestore:"dynamicFields"`
 }
 
 // Target represents a backlink directory/target
@@ -23,9 +28,16 @@ type Target struct {
 	ID         string `json:"id" firestore:"id"`
 	Domain     string `json:"domain" firestore:"domain"`
 	URL        string `json:"url" firestore:"url"`
-	Status     string `json:"status" firestore:"status"`       // e.g. "shortlist", "submitted", "contacted"
+	ColumnID   string `json:"columnId" firestore:"columnId"`   // e.g. "shortlist", "submitted", "contacted"
 	TargetURL  string `json:"targetUrl" firestore:"targetUrl"` // URL where backlink points to
 	PitchDraft string `json:"pitchDraft,omitempty" firestore:"pitchDraft,omitempty"`
+	Notes      string `json:"notes,omitempty" firestore:"notes,omitempty"`
+}
+
+type PageSummary struct {
+	TargetURL string `json:"targetUrl" firestore:"targetUrl"`
+	URL       string `json:"url" firestore:"url"`
+	Summary   string `json:"summary" firestore:"summary"`
 }
 
 type Client struct {

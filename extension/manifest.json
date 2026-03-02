@@ -6,7 +6,8 @@
     "permissions": [
         "activeTab",
         "scripting",
-        "storage"
+        "storage",
+        "sidePanel"
     ],
     "host_permissions": [
         "http://localhost:8080/*",
@@ -15,8 +16,11 @@
     "background": {
         "service_worker": "background.js"
     },
+    "side_panel": {
+        "default_path": "sidepanel.html"
+    },
     "action": {
-        "default_title": "Autofill Page"
+        "default_title": "Open SEO Agent"
     },
     "content_scripts": [
         {

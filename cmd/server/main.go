@@ -2,13 +2,15 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/dllewellyn/seo-backlink-trello/internal/agent"
+	"github.com/dllewellyn/seo-backlink-trello/internal/api"
 	"github.com/dllewellyn/seo-backlink-trello/internal/db"
+	"github.com/firebase/genkit/go/genkit"
+	session "google.golang.org/adk/session"
 )
 
 func main() {
@@ -29,72 +31,30 @@ func main() {
 	}
 	defer dbClient.Firestore.Close()
 
+	// Initialize Genkit
+	g := genkit.Init(ctx, genkit.WithPromptDir("./prompts"))
+
 	// Initialize ADK Agents
-	agents, err := agent.InitAgents(ctx)
+	agents, err := agent.InitAgents(ctx, dbClient, g)
 	if err != nil {
 		log.Fatalf("Failed to initialize agents: %v", err)
 	}
 	log.Printf("Successfully loaded %d agents", len(agents))
 
+	sessionSvc := session.InMemoryService()
+
+	// Setup Server and Routes
+	mux := http.NewServeMux()
+
 	// Serve React UI from ui/dist
 	fs := http.FileServer(http.Dir("./ui/dist"))
-	http.Handle("/", fs)
+	mux.Handle("/", fs)
 
-	// API Endpoints
-	http.HandleFunc("/api/profile/generate", func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement Profile Generator Agent
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotImplemented)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Not implemented"})
-	})
-
-	http.HandleFunc("/api/profile", func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement Update Profile
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotImplemented)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Not implemented"})
-	})
-
-	http.HandleFunc("/api/research/start", func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement Researcher Agent logic
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotImplemented)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Not implemented"})
-	})
-
-	http.HandleFunc("/api/pitch/draft", func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement Pitch Agent
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotImplemented)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Not implemented"})
-	})
-
-	// Chrome Extension Autofill Endpoint
-	http.HandleFunc("/api/extension/autofill", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var req struct {
-			TargetURL   string `json:"targetUrl"`
-			PageContent string `json:"pageContent"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
-
-		// TODO: Call Form Filler Agent
-		res := map[string]string{
-			"status": "success",
-			"mock":   "data",
-		}
-		json.NewEncoder(w).Encode(res)
-	})
+	srv := api.NewServer(dbClient, agents, sessionSvc, g)
+	srv.RegisterRoutes(mux)
 
 	log.Printf("Server starting on port %s...", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

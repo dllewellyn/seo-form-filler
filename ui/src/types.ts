@@ -12,4 +12,5 @@ export type Target = {
   url: string;
   targetUrl: string;
   pitchDraft?: string;
+  notes?: string;
 };
