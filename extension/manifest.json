@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "SEO Autofill Agent",
-    "version": "1.0",
+    "version": "1.1",
     "description": "AI-powered form filler for SEO backlink submission",
     "permissions": [
         "activeTab",
@@ -22,6 +22,7 @@
     "action": {
         "default_title": "Open SEO Agent"
     },
+    "options_page": "options.html",
     "content_scripts": [
         {
             "matches": [

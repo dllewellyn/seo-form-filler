@@ -1,3 +1,16 @@
+// Shared utility to get the configured server URL
+const DEFAULT_SERVER_URL = 'http://localhost:8080';
+
+async function getServerUrl() {
+    try {
+        const result = await chrome.storage.sync.get(['serverUrl']);
+        return result.serverUrl || DEFAULT_SERVER_URL;
+    } catch (err) {
+        console.error('Failed to get server URL from storage:', err);
+        return DEFAULT_SERVER_URL;
+    }
+}
+
 let allTargets = [];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -6,11 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('autofill-btn').addEventListener('click', triggerAutofill);
     document.getElementById('status-filter').addEventListener('change', renderTargets);
+    document.getElementById('settings-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        chrome.runtime.openOptionsPage();
+    });
 });
 
 async function loadProfile() {
+    const serverUrl = await getServerUrl();
     try {
-        const res = await fetch('http://localhost:8080/api/extension/profile');
+        const res = await fetch(`${serverUrl}/api/extension/profile`);
         if (!res.ok) throw new Error('Failed to fetch profile');
         const profile = await res.json();
 
@@ -28,8 +46,9 @@ async function loadProfile() {
 }
 
 async function loadTargets() {
+    const serverUrl = await getServerUrl();
     try {
-        const res = await fetch('http://localhost:8080/api/extension/targets');
+        const res = await fetch(`${serverUrl}/api/extension/targets`);
         if (!res.ok) throw new Error('Failed to fetch targets');
         allTargets = await res.json() || [];
         renderTargets();

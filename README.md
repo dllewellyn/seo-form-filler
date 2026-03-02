@@ -18,7 +18,7 @@ This application uses a sophisticated modern tech stack to provide an end-to-end
 *   **AI Target Discovery:** Autonomously researches and discovers relevant backlink targets (directories, blogs, lists) tailored to your Master Profile.
 *   **Real-time Kanban Board:** A premium drag-and-drop interface to manage targets through their lifecycle: Shortlist, In Progress, Submitted, and Contacted.
 *   **Agent-to-Agent Communication:** Advanced "Agent as Tool" orchestration where the Form Filler agent can autonomously request missing data from a specialized Extraction Agent.
-*   **Chrome Extension Autofill:** Integrated extension for automated form filling using the dynamic Master Profile dataset.
+*   **Chrome Extension Autofill:** Integrated extension with configurable server URL for automated form filling using the dynamic Master Profile dataset.
 *   **(Upcoming) Pitch Drafting:** AI-generated personalized outreach emails for bespoke targets.
 
 ## Run Locally
@@ -47,3 +47,16 @@ npm run dev
 ```
 
 Visit `http://localhost:5173/` in your browser to launch the SEO Engine.
+
+## Chrome Extension Setup
+
+The Chrome extension allows you to autofill forms on target websites using the AI-powered Form Filler agent.
+
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Enable **Developer mode** (toggle in the top right)
+3. Click **Load unpacked** and select the `extension/` directory
+4. Click the extension icon and select **⚙️ Configure Server URL**
+5. Set your backend server URL (default: `http://localhost:8080`)
+6. Navigate to any target website and click **Autofill Target Form** in the extension side panel
+
+See [extension/README.md](extension/README.md) for detailed documentation.

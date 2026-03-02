@@ -1,3 +1,16 @@
+// Shared utility to get the configured server URL
+const DEFAULT_SERVER_URL = 'http://localhost:8080';
+
+async function getServerUrl() {
+    try {
+        const result = await chrome.storage.sync.get(['serverUrl']);
+        return result.serverUrl || DEFAULT_SERVER_URL;
+    } catch (err) {
+        console.error('Failed to get server URL from storage:', err);
+        return DEFAULT_SERVER_URL;
+    }
+}
+
 // Allow users to open the side panel by clicking on the action toolbar icon
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error) => console.error(error));
@@ -16,6 +29,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function runAutofillLoop(tabId, targetUrl, manualError) {
     const MAX_ITERATIONS = 15;
     let iterations = 0;
+    const serverUrl = await getServerUrl();
 
     while (iterations < MAX_ITERATIONS) {
         iterations++;
@@ -69,7 +83,7 @@ async function runAutofillLoop(tabId, targetUrl, manualError) {
         }
 
         // 2. Send scraped data to Backend AI
-        const backendResponse = await fetch("http://localhost:8080/api/extension/autofill", {
+        const backendResponse = await fetch(`${serverUrl}/api/extension/autofill`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
