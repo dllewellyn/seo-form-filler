@@ -14,3 +14,15 @@ export type Target = {
   pitchDraft?: string;
   notes?: string;
 };
+
+export type Profile = {
+  id: string;
+  userId: string;
+  targetUrl: string;
+  companyName: string;
+  shortDescription: string;
+  longDescription: string;
+  keywords: string[];
+  founderName: string;
+  dynamicFields: Record<string, string>;
+};

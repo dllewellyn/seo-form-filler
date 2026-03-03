@@ -21,9 +21,12 @@ func NewServer(dbClient *db.Client, agents map[string]adkagent.Agent, sessionSvc
 }
 
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/api/profile/generate", s.handlers.ProfileGenerate)
-	mux.HandleFunc("/api/profile", s.handlers.ProfileUpdate)
-	mux.HandleFunc("/api/research/start", s.handlers.ResearchStart)
+	authClient := s.handlers.DB.Auth
+
+	mux.HandleFunc("/api/profile/generate", handlers.RequireAuth(authClient, s.handlers.ProfileGenerate))
+	mux.HandleFunc("/api/profile", handlers.RequireAuth(authClient, s.handlers.ProfileUpdate))
+	mux.HandleFunc("/api/profiles", handlers.RequireAuth(authClient, s.handlers.ProfilesList))
+	mux.HandleFunc("/api/research/start", handlers.RequireAuth(authClient, s.handlers.ResearchStart))
 	mux.HandleFunc("/api/pitch/draft", s.handlers.PitchDraft)
 	mux.HandleFunc("/api/extension/targets", s.handlers.ExtensionTargets)
 	mux.HandleFunc("/api/extension/profile", s.handlers.ExtensionProfile)

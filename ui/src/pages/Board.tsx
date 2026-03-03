@@ -1,16 +1,28 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import KanbanBoard from '../components/board/KanbanBoard';
 import { Target, User, RefreshCw } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Board() {
+    const { profileId } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [isResearching, setIsResearching] = useState(false);
 
     const handleFindMore = async () => {
+        if (!user || !profileId) return;
         setIsResearching(true);
         try {
-            await fetch('/api/research/start', { method: 'POST' });
+            const token = await user.getIdToken();
+            await fetch('/api/research/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ profileId })
+            });
         } catch (e) {
             console.error(e);
         } finally {
@@ -41,11 +53,11 @@ export default function Board() {
                 </div>
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => navigate('/review')}
+                        onClick={() => navigate('/')}
                         className="btn-secondary py-2.5 px-5 text-sm flex items-center gap-2"
                     >
                         <User size={16} />
-                        View Profile
+                        All Boards
                     </button>
                     <button
                         onClick={handleFindMore}
@@ -64,7 +76,7 @@ export default function Board() {
 
             {/* Board Area */}
             <main className="flex-1 overflow-hidden p-6">
-                <KanbanBoard />
+                <KanbanBoard profileId={profileId || ''} />
             </main>
         </div>
     );

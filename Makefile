@@ -19,7 +19,7 @@ dev: kill
 
 firestore:
 	@echo "🔥 Starting Firestore Emulator..."
-	firebase emulators:start --only firestore --project $(PROJECT_ID) --import=./firebase-export --export-on-exit=./firebase-export
+	firebase emulators:start --project $(PROJECT_ID) --import=./firebase-export --export-on-exit=./firebase-export
 
 backend:
 	@echo "📦 Starting Go Backend..."

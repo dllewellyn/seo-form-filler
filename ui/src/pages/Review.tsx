@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Check, Edit2, Cloud } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function Review() {
     const navigate = useNavigate()
     const location = useLocation()
+    const { user } = useAuth()
 
     const initialUrl = location.state?.targetUrl || 'Unknown URL'
     const generatedProfile = location.state?.profile || null
@@ -42,11 +44,17 @@ export default function Review() {
     const saveProfile = async (updatedProfile: typeof profile) => {
         setIsSaving(true)
         try {
+            if (!user) return;
+            const token = await user.getIdToken();
             const keywordsArray = updatedProfile.keywords.split(',').map((k: string) => k.trim())
             await fetch('/api/profile', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
+                    id: generatedProfile?.id,
                     targetUrl: initialUrl,
                     companyName: updatedProfile.companyName,
                     shortDescription: updatedProfile.shortDescription,
@@ -74,13 +82,23 @@ export default function Review() {
     const handleStartResearch = async () => {
         setIsStarting(true)
         try {
+            if (!user) return;
+            const token = await user.getIdToken();
+
             // Ensure latest state is saved before starting
             await saveProfile(profile)
 
-            // 2. Trigger Researcher Agent
-            await fetch('/api/research/start', { method: 'POST' });
+            // 2. Trigger Researcher Agent (Pass the Profile ID)
+            await fetch('/api/research/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ profileId: generatedProfile?.id })
+            });
 
-            navigate('/board')
+            navigate(`/board/${generatedProfile?.id}`)
         } catch (e) {
             console.error(e)
             setIsStarting(false)

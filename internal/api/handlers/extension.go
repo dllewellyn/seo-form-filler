@@ -23,10 +23,17 @@ func (h *Handlers) ExtensionTargets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	profileID := r.URL.Query().Get("profileId")
+	if profileID == "" {
+		http.Error(w, "profileId is required", http.StatusBadRequest)
+		return
+	}
+
 	ctx := context.Background()
 
 	// Fetch targets from Firestore (e.g., in "shortlist" or "in-progress")
-	docs, err := h.DB.Firestore.Collection("targets").Documents(ctx).GetAll()
+	iter := h.DB.Firestore.Collection("targets").Where("profileId", "==", profileID).Documents(ctx)
+	docs, err := iter.GetAll()
 	if err != nil {
 		log.Printf("Failed to fetch targets: %v", err)
 		http.Error(w, "Failed to fetch targets", http.StatusInternalServerError)
@@ -51,9 +58,15 @@ func (h *Handlers) ExtensionProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	profileID := r.URL.Query().Get("profileId")
+	if profileID == "" {
+		http.Error(w, "profileId is required", http.StatusBadRequest)
+		return
+	}
+
 	ctx := context.Background()
 
-	doc, err := h.DB.Firestore.Collection("profiles").Doc("master").Get(ctx)
+	doc, err := h.DB.Firestore.Collection("profiles").Doc(profileID).Get(ctx)
 	if err != nil {
 		log.Printf("Failed to fetch master profile: %v", err)
 		http.Error(w, "Profile not found", http.StatusNotFound)
@@ -82,6 +95,7 @@ func (h *Handlers) ExtensionAutofill(w http.ResponseWriter, r *http.Request) {
 		PageContext string                   `json:"pageContext"`
 		Elements    []map[string]interface{} `json:"elements"`
 		Errors      []string                 `json:"errors"`
+		ProfileID   string                   `json:"profileId"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -90,8 +104,13 @@ func (h *Handlers) ExtensionAutofill(w http.ResponseWriter, r *http.Request) {
 
 	ctx := context.Background()
 
+	if req.ProfileID == "" {
+		http.Error(w, "profileId is required", http.StatusBadRequest)
+		return
+	}
+
 	// Fetch Master Profile
-	doc, err := h.DB.Firestore.Collection("profiles").Doc("master").Get(ctx)
+	doc, err := h.DB.Firestore.Collection("profiles").Doc(req.ProfileID).Get(ctx)
 	if err != nil {
 		log.Printf("Failed to get master profile for autofill: %v", err)
 		http.Error(w, "Master profile not found", http.StatusNotFound)

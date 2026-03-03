@@ -8,12 +8,14 @@ import (
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/auth"
 )
 
 // Profile represents the user's master company profile
 // Profile represents the user's master company profile
 type Profile struct {
 	ID               string            `json:"id" firestore:"id,omitempty"`
+	UserID           string            `json:"userId" firestore:"userId,omitempty"`
 	TargetURL        string            `json:"targetUrl" firestore:"targetUrl,omitempty"`
 	CompanyName      string            `json:"companyName" firestore:"companyName"`
 	ShortDescription string            `json:"shortDescription" firestore:"shortDescription"`
@@ -26,6 +28,7 @@ type Profile struct {
 // Target represents a backlink directory/target
 type Target struct {
 	ID         string `json:"id" firestore:"id"`
+	ProfileID  string `json:"profileId" firestore:"profileId"`
 	Domain     string `json:"domain" firestore:"domain"`
 	URL        string `json:"url" firestore:"url"`
 	ColumnID   string `json:"columnId" firestore:"columnId"`   // e.g. "shortlist", "submitted", "contacted"
@@ -42,6 +45,7 @@ type PageSummary struct {
 
 type Client struct {
 	Firestore *firestore.Client
+	Auth      *auth.Client
 }
 
 func InitFirestore(ctx context.Context) (*Client, error) {
@@ -58,6 +62,11 @@ func InitFirestore(ctx context.Context) (*Client, error) {
 		return nil, fmt.Errorf("error initializing firestore client: %v", err)
 	}
 
+	authClient, err := app.Auth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing auth client: %v", err)
+	}
+
 	// Make sure process doesn't exit before writing log
 	emulatorHost := os.Getenv("FIRESTORE_EMULATOR_HOST")
 	if emulatorHost != "" {
@@ -66,5 +75,5 @@ func InitFirestore(ctx context.Context) (*Client, error) {
 		log.Println("Connected to production Firestore")
 	}
 
-	return &Client{Firestore: client}, nil
+	return &Client{Firestore: client, Auth: authClient}, nil
 }

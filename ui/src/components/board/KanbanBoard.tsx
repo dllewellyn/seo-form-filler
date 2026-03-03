@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { useAuth } from '../../contexts/AuthContext';
 
 import {
     DndContext,
@@ -25,13 +26,21 @@ const defaultCols: Column[] = [
     { id: 'rejected', title: 'Rejected' },
 ];
 
-export default function KanbanBoard() {
+export default function KanbanBoard({ profileId }: { profileId: string }) {
+    const { user } = useAuth();
     const [columns] = useState<Column[]>(defaultCols);
     const [targets, setTargets] = useState<Target[]>([]);
     const [activeTarget, setActiveTarget] = useState<Target | null>(null);
 
     useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, "targets"), (snapshot) => {
+        if (!user || !profileId) return;
+
+        const q = query(
+            collection(db, "targets"),
+            where("profileId", "==", profileId)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
             const dbTargets = snapshot.docs.map(doc => ({
                 ...doc.data(),
                 id: doc.id

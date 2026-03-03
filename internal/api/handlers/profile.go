@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dllewellyn/seo-backlink-trello/internal/db"
+	"github.com/google/uuid"
 	adkagent "google.golang.org/adk/agent"
 	"google.golang.org/adk/runner"
 	session "google.golang.org/adk/session"
@@ -28,6 +29,12 @@ func (h *Handlers) ProfileGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -145,9 +152,11 @@ func (h *Handlers) ProfileGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	profile.TargetURL = req.URL
+	profile.ID = uuid.NewString()
+	profile.UserID = userID
 
 	// 4. Save to Firestore (upsert)
-	_, err = h.DB.Firestore.Collection("profiles").Doc("master").Set(ctx, profile)
+	_, err = h.DB.Firestore.Collection("profiles").Doc(profile.ID).Set(ctx, profile)
 	if err != nil {
 		log.Printf("Failed to save to Firestore: %v", err)
 		http.Error(w, "Failed to save profile", http.StatusInternalServerError)
@@ -170,10 +179,26 @@ func (h *Handlers) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profile.ID = "master" // Hardcode for demo
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if profile.ID == "" {
+		http.Error(w, "Bad Request: Missing ID", http.StatusBadRequest)
+		return
+	}
+
+	if profile.UserID != userID && profile.UserID != "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	profile.UserID = userID // Ensure it's correctly mapped
 
 	ctx := context.Background()
-	_, err := h.DB.Firestore.Collection("profiles").Doc("master").Set(ctx, profile)
+	_, err := h.DB.Firestore.Collection("profiles").Doc(profile.ID).Set(ctx, profile)
 	if err != nil {
 		log.Printf("Failed to update profile: %v", err)
 		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
@@ -182,4 +207,40 @@ func (h *Handlers) ProfileUpdate(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
+func (h *Handlers) ProfilesList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	ctx := context.Background()
+	iter := h.DB.Firestore.Collection("profiles").Where("userId", "==", userID).Documents(ctx)
+	docs, err := iter.GetAll()
+	if err != nil {
+		log.Printf("Failed to get profiles: %v", err)
+		http.Error(w, "Failed to fetch profiles", http.StatusInternalServerError)
+		return
+	}
+
+	var profiles []db.Profile
+	for _, doc := range docs {
+		var p db.Profile
+		doc.DataTo(&p)
+		profiles = append(profiles, p)
+	}
+
+	if profiles == nil {
+		profiles = []db.Profile{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(profiles)
 }

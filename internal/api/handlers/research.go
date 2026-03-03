@@ -24,13 +24,32 @@ func (h *Handlers) ResearchStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var req struct {
+		ProfileID string `json:"profileId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if req.ProfileID == "" {
+		http.Error(w, "ProfileID is required", http.StatusBadRequest)
+		return
+	}
+
 	ctx := context.Background()
 
-	// 1. Fetch Master Profile and Existing Targets from Firestore
-	doc, err := h.DB.Firestore.Collection("profiles").Doc("master").Get(ctx)
+	// 1. Fetch Profile and Existing Targets from Firestore
+	doc, err := h.DB.Firestore.Collection("profiles").Doc(req.ProfileID).Get(ctx)
 	if err != nil {
-		log.Printf("Failed to get master profile: %v", err)
-		http.Error(w, "Master profile not found", http.StatusNotFound)
+		log.Printf("Failed to get profile: %v", err)
+		http.Error(w, "Profile not found", http.StatusNotFound)
 		return
 	}
 
@@ -40,8 +59,14 @@ func (h *Handlers) ResearchStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if profile.UserID != userID && profile.UserID != "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	// Fetch existing targets to avoid duplicates
-	existingDocs, _ := h.DB.Firestore.Collection("targets").Documents(ctx).GetAll()
+	iter := h.DB.Firestore.Collection("targets").Where("profileId", "==", req.ProfileID).Documents(ctx)
+	existingDocs, _ := iter.GetAll()
 	existingDomains := []string{}
 	for _, d := range existingDocs {
 		var t db.Target
@@ -101,12 +126,12 @@ func (h *Handlers) ResearchStart(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Session create failed: %v", err)
 	}
 
-	iter := agentRunner.Run(ctx, "user-id", sessID,
+	agentIter := agentRunner.Run(ctx, "user-id", sessID,
 		&genai.Content{Parts: []*genai.Part{{Text: prompt}}, Role: "user"},
 		adkagent.RunConfig{})
 
 	rawOutput := ""
-	for ev, err := range iter {
+	for ev, err := range agentIter {
 		if err != nil {
 			log.Printf("Agent run stream error: %v", err)
 			http.Error(w, "Agent research failed", http.StatusInternalServerError)
@@ -145,6 +170,7 @@ func (h *Handlers) ResearchStart(w http.ResponseWriter, r *http.Request) {
 		targetID := fmt.Sprintf("target_%x", md5.Sum([]byte(gt.URL)))
 		target := db.Target{
 			ID:        targetID,
+			ProfileID: req.ProfileID,
 			ColumnID:  "shortlist",
 			Domain:    gt.Domain,
 			URL:       gt.URL,

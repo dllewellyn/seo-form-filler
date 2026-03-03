@@ -1,22 +1,28 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Search } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function Setup() {
     const [url, setUrl] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const navigate = useNavigate()
+    const { user } = useAuth()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!url) return
+        if (!url || !user) return
 
         setIsLoading(true)
 
         try {
+            const token = await user.getIdToken();
             const response = await fetch('/api/profile/generate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ url })
             });
 
