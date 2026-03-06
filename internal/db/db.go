@@ -27,14 +27,16 @@ type Profile struct {
 
 // Target represents a backlink directory/target
 type Target struct {
-	ID         string `json:"id" firestore:"id"`
-	ProfileID  string `json:"profileId" firestore:"profileId"`
-	Domain     string `json:"domain" firestore:"domain"`
-	URL        string `json:"url" firestore:"url"`
-	ColumnID   string `json:"columnId" firestore:"columnId"`   // e.g. "shortlist", "submitted", "contacted"
-	TargetURL  string `json:"targetUrl" firestore:"targetUrl"` // URL where backlink points to
-	PitchDraft string `json:"pitchDraft,omitempty" firestore:"pitchDraft,omitempty"`
-	Notes      string `json:"notes,omitempty" firestore:"notes,omitempty"`
+	ID                string `json:"id" firestore:"id"`
+	ProfileID         string `json:"profileId" firestore:"profileId"`
+	Type              string `json:"type" firestore:"type"` // "directory" or "outreach"
+	Domain            string `json:"domain" firestore:"domain"`
+	URL               string `json:"url" firestore:"url"`
+	ColumnID          string `json:"columnId" firestore:"columnId"`   // e.g. "shortlist", "submitted", "contacted"
+	TargetURL         string `json:"targetUrl" firestore:"targetUrl"` // URL where backlink points to
+	PitchDraft        string `json:"pitchDraft,omitempty" firestore:"pitchDraft,omitempty"`
+	Notes             string `json:"notes,omitempty" firestore:"notes,omitempty"`
+	IsGeneratingPitch bool   `json:"isGeneratingPitch,omitempty" firestore:"isGeneratingPitch,omitempty"`
 }
 
 type PageSummary struct {
@@ -73,6 +75,13 @@ func InitFirestore(ctx context.Context) (*Client, error) {
 		log.Printf("Connected to Firestore emulator at %s", emulatorHost)
 	} else {
 		log.Println("Connected to production Firestore")
+	}
+
+	authEmulatorHost := os.Getenv("FIREBASE_AUTH_EMULATOR_HOST")
+	if authEmulatorHost != "" {
+		log.Printf("Connected to Firebase Auth emulator at %s", authEmulatorHost)
+	} else {
+		log.Println("Connected to production Firebase Auth")
 	}
 
 	return &Client{Firestore: client, Auth: authClient}, nil

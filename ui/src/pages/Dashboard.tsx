@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { FolderGit2, Plus, LogOut, Loader2, ArrowRight } from 'lucide-react';
+import { FolderGit2, Plus, LogOut, Loader2, ArrowRight, Trash2 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import type { Profile } from '../types';
@@ -39,6 +39,32 @@ export default function Dashboard() {
         await signOut(auth);
         navigate('/login');
     };
+
+    const handleDeleteProfile = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation(); // prevent card click
+        if (!confirm('Are you sure you want to delete this profile? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const res = await fetch(`/api/profile/delete?profileId=${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                setProfiles(profiles.filter(p => p.id !== id));
+            } else {
+                console.error("Failed to delete profile");
+                alert("Failed to delete the profile.");
+            }
+        } catch (err) {
+            console.error("Error deleting profile:", err);
+            alert("Error deleting the profile.");
+        }
+    }
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -106,8 +132,17 @@ export default function Dashboard() {
                                         <h3 className="text-lg font-bold text-slate-900 line-clamp-1">
                                             {profile.companyName || new URL(profile.targetUrl).hostname}
                                         </h3>
-                                        <div className="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-200">
-                                            {profile.keywords?.length || 0} keywords
+                                        <div className="flex items-center gap-2">
+                                            <div className="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-200">
+                                                {profile.keywords?.length || 0} keywords
+                                            </div>
+                                            <button
+                                                onClick={(e) => handleDeleteProfile(profile.id, e)}
+                                                className="p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors border border-transparent hover:border-red-200"
+                                                title="Delete Profile"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
                                     </div>
 

@@ -1,3 +1,5 @@
+importScripts('auth.js');
+
 // Shared utility to get the configured server URL
 const DEFAULT_SERVER_URL = 'http://localhost:8080';
 
@@ -8,6 +10,16 @@ async function getServerUrl() {
     } catch (err) {
         console.error('Failed to get server URL from storage:', err);
         return DEFAULT_SERVER_URL;
+    }
+}
+
+async function getProfileId() {
+    try {
+        const result = await chrome.storage.sync.get(['profileId']);
+        return result.profileId || '';
+    } catch (err) {
+        console.error('Failed to get profile ID from storage:', err);
+        return '';
     }
 }
 
@@ -83,14 +95,28 @@ async function runAutofillLoop(tabId, targetUrl, manualError) {
         }
 
         // 2. Send scraped data to Backend AI
+        const profileId = await getProfileId();
+        if (!profileId) {
+            throw new Error("Profile ID not configured. Please set it in the extension options.");
+        }
+
+        const token = await getValidToken();
+        if (!token) {
+            throw new Error("Not authenticated. Please log in through the extension side panel.");
+        }
+
         const backendResponse = await fetch(`${serverUrl}/api/extension/autofill`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
             body: JSON.stringify({
                 targetUrl: targetUrl,
                 pageContext: scrapeResponse.url,
                 elements: scrapeResponse.elements,
-                errors: allErrors
+                errors: allErrors,
+                profileId: profileId
             })
         });
 

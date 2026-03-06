@@ -1,5 +1,7 @@
 # Makefile for SEO Backlink Trello Project
 
+-include .env
+
 .PHONY: dev clean kill setup firestore backend ui
 
 # Ports to clean up
@@ -9,9 +11,6 @@ EMULATOR_PORT=8081
 EMULATOR_UI_PORT=4002
 
 # Local Dev Configuration
-export FIRESTORE_EMULATOR_HOST=localhost:8081
-export GOOGLE_API_KEY=AIzaSyA_lTRfMXsNsCmZ9bhzSa6Z0-xnX8hPdBM
-export PROJECT_ID=demo-seo-backlink
 
 dev: kill
 	@echo "🚀 Starting Full Stack Development Environment..."

@@ -57,6 +57,12 @@ function App() {
               </AuthGuard>
             } />
 
+            <Route path="/profile/:profileId/edit" element={
+              <AuthGuard>
+                <Review />
+              </AuthGuard>
+            } />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

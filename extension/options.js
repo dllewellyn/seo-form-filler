@@ -6,21 +6,33 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('save-btn').addEventListener('click', saveSettings);
     document.getElementById('reset-btn').addEventListener('click', resetSettings);
 
-    // Preset buttons
-    document.querySelectorAll('.preset-btn').forEach(btn => {
+    // Preset buttons for Server URL
+    document.querySelectorAll('.preset-btn:not(.auth-preset-btn)').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const url = e.target.getAttribute('data-url');
             document.getElementById('server-url').value = url;
+        });
+    });
+
+    // Preset buttons for Auth URL
+    document.querySelectorAll('.auth-preset-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const url = e.target.getAttribute('data-url');
+            document.getElementById('firebase-auth-url').value = url;
         });
     });
 });
 
 async function loadSettings() {
     try {
-        const result = await chrome.storage.sync.get(['serverUrl']);
+        const result = await chrome.storage.sync.get(['serverUrl', 'firebaseApiKey', 'firebaseAuthUrl']);
         const serverUrl = result.serverUrl || DEFAULT_SERVER_URL;
-        
+        const apiKey = result.firebaseApiKey || '';
+        const authUrl = result.firebaseAuthUrl || 'http://localhost:9099/identitytoolkit.googleapis.com/v1';
+
         document.getElementById('server-url').value = serverUrl;
+        document.getElementById('firebase-api-key').value = apiKey;
+        document.getElementById('firebase-auth-url').value = authUrl;
         updateCurrentConfig(serverUrl);
     } catch (err) {
         console.error('Failed to load settings:', err);
@@ -30,7 +42,9 @@ async function loadSettings() {
 
 async function saveSettings() {
     const serverUrl = document.getElementById('server-url').value.trim();
-    
+    const apiKey = document.getElementById('firebase-api-key').value.trim();
+    const authUrl = document.getElementById('firebase-auth-url').value.trim();
+
     // Validate URL
     if (!serverUrl) {
         showStatus('Please enter a server URL', 'error');
@@ -40,18 +54,32 @@ async function saveSettings() {
     try {
         new URL(serverUrl);
     } catch (err) {
-        showStatus('Invalid URL format. Please enter a valid URL (e.g., http://localhost:8080)', 'error');
+        showStatus('Invalid server URL format. Please enter a valid URL (e.g., http://localhost:8080)', 'error');
         return;
+    }
+
+    if (authUrl) {
+        try {
+            new URL(authUrl);
+        } catch (err) {
+            showStatus('Invalid Auth URL format.', 'error');
+            return;
+        }
     }
 
     // Remove trailing slash if present
     const cleanUrl = serverUrl.replace(/\/$/, '');
+    const cleanAuthUrl = authUrl.replace(/\/$/, '');
 
     try {
-        await chrome.storage.sync.set({ serverUrl: cleanUrl });
+        await chrome.storage.sync.set({
+            serverUrl: cleanUrl,
+            firebaseApiKey: apiKey,
+            firebaseAuthUrl: cleanAuthUrl
+        });
         showStatus('Settings saved successfully!', 'success');
         updateCurrentConfig(cleanUrl);
-        
+
         // Test connection
         testConnection(cleanUrl);
     } catch (err) {
@@ -62,8 +90,14 @@ async function saveSettings() {
 
 async function resetSettings() {
     try {
-        await chrome.storage.sync.set({ serverUrl: DEFAULT_SERVER_URL });
+        await chrome.storage.sync.set({
+            serverUrl: DEFAULT_SERVER_URL,
+            firebaseApiKey: '',
+            firebaseAuthUrl: 'http://localhost:9099/identitytoolkit.googleapis.com/v1'
+        });
         document.getElementById('server-url').value = DEFAULT_SERVER_URL;
+        document.getElementById('firebase-api-key').value = '';
+        document.getElementById('firebase-auth-url').value = 'http://localhost:9099/identitytoolkit.googleapis.com/v1';
         showStatus('Settings reset to default', 'success');
         updateCurrentConfig(DEFAULT_SERVER_URL);
     } catch (err) {
@@ -86,12 +120,13 @@ function showStatus(message, type) {
 
 function updateCurrentConfig(serverUrl) {
     document.getElementById('current-config').innerHTML = `
-        <strong>Server URL:</strong> <code>${serverUrl}</code>
+        <strong>Server URL:</strong> <code>${serverUrl}</code><br>
     `;
 }
 
 async function testConnection(serverUrl) {
     try {
+        // Test connection by fetching a public route or with no profile ID
         const response = await fetch(`${serverUrl}/api/extension/profile`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }

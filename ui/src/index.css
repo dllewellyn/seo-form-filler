@@ -55,3 +55,23 @@
   @apply bg-slate-400;
 }
 
+
+/* ── Pitch editor rich-text content ── */
+.pitch-editor-content:empty::before {
+  content: 'Start writing your pitch...';
+  color: #94a3b8;
+  pointer-events: none;
+}
+.pitch-editor-content p { margin-bottom: 1em; line-height: 1.75; }
+.pitch-editor-content h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 1.5em 0 0.5em;
+  line-height: 1.3;
+}
+.pitch-editor-content ul { list-style: disc; padding-left: 1.75em; margin-bottom: 1em; }
+.pitch-editor-content li { margin-bottom: 0.35em; line-height: 1.6; }
+.pitch-editor-content strong, .pitch-editor-content b { font-weight: 700; color: #1e293b; }
+.pitch-editor-content em, .pitch-editor-content i { font-style: italic; color: #475569; }
+.pitch-editor-content u { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: #cbd5e1; }

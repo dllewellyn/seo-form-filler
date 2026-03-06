@@ -106,40 +106,65 @@
 
     <h1>SEO Backlink Agent</h1>
 
-    <div class="section">
-        <div class="section-title">Active Profile</div>
-        <div id="profile-summary">Loading profile...</div>
-        <div style="margin-top: 8px;">
-            <a href="#" id="settings-link" style="font-size: 0.75rem; color: #2563eb; text-decoration: none;">⚙️ Configure Server URL</a>
+    <div id="login-view" style="display: none;" class="section">
+        <div class="section-title">Login</div>
+        <p style="font-size: 0.875rem; color: #64748b; margin-bottom: 16px;">Please log in with your Firebase credentials to use the SEO Agent.</p>
+        
+        <label for="login-email" style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 4px;">Email</label>
+        <input type="email" id="login-email" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 12px;" />
+
+        <label for="login-password" style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 4px;">Password</label>
+        <input type="password" id="login-password" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 16px;" />
+
+        <button id="login-btn" class="btn">Log In</button>
+        <div id="login-error" style="color: #ef4444; font-size: 0.875rem; margin-top: 8px; display: none;"></div>
+        
+        <div style="margin-top: 24px; text-align: center;">
+            <a href="#" class="open-settings-link" style="font-size: 0.75rem; color: #2563eb; text-decoration: none;">⚙️ Configure settings</a>
         </div>
     </div>
 
-    <div class="section">
-        <div class="section-title">Current Tab Actions</div>
-        <button id="autofill-btn" class="btn">Autofill Target Form</button>
-        <div style="margin-top: 12px;">
-            <label for="manual-error-input" style="font-size: 0.75rem; font-weight: 500; color: #64748b; margin-bottom: 4px; display: block;">Manual Error Context (Optional)</label>
-            <textarea id="manual-error-input" rows="3" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-family: inherit; font-size: 0.875rem; resize: vertical;" placeholder="Paste any validation errors the AI missed here..."></textarea>
-        </div>
-        <div id="action-loader" class="loader">Analyzing form...</div>
-        <div id="error-msg"></div>
-    </div>
-
-    <div class="section">
-        <div class="section-title">Shortlisted Targets</div>
-        <div class="filter-container">
-            <select id="status-filter" class="filter-select">
-                <option value="all">All Statuses</option>
-                <option value="shortlist">Shortlist</option>
-                <option value="in-progress">In Progress</option>
-                <option value="submitted">Submitted</option>
-                <option value="contacted">Contacted</option>
-                <option value="rejected">Rejected</option>
+    <div id="app-view" style="display: none;">
+        <div class="section">
+            <div class="section-title">Active Profile</div>
+            <select id="profile-select" class="filter-select" style="width: 100%; margin-bottom: 8px;">
+                <option value="">Loading profiles...</option>
             </select>
+            <div id="profile-summary" style="font-size: 0.875rem;">Loading profile...</div>
+            <div style="margin-top: 8px; display: flex; justify-content: space-between;">
+                <a href="#" class="open-settings-link" style="font-size: 0.75rem; color: #2563eb; text-decoration: none;">⚙️ Configure settings</a>
+                <a href="#" id="logout-btn" style="font-size: 0.75rem; color: #ef4444; text-decoration: none;">Logout</a>
+            </div>
         </div>
-        <div id="targets-list">Loading targets...</div>
+
+        <div class="section">
+            <div class="section-title">Current Tab Actions</div>
+            <button id="autofill-btn" class="btn">Autofill Target Form</button>
+            <div style="margin-top: 12px;">
+                <label for="manual-error-input" style="font-size: 0.75rem; font-weight: 500; color: #64748b; margin-bottom: 4px; display: block;">Manual Error Context (Optional)</label>
+                <textarea id="manual-error-input" rows="3" style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-family: inherit; font-size: 0.875rem; resize: vertical;" placeholder="Paste any validation errors the AI missed here..."></textarea>
+            </div>
+            <div id="action-loader" class="loader">Analyzing form...</div>
+            <div id="error-msg"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Shortlisted Targets</div>
+            <div class="filter-container">
+                <select id="status-filter" class="filter-select">
+                    <option value="all">All Statuses</option>
+                    <option value="shortlist">Shortlist</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="submitted">Submitted</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+            <div id="targets-list">Loading targets...</div>
+        </div>
     </div>
 
+    <script src="auth.js"></script>
     <script src="sidepanel.js"></script>
 </body>
 </html>

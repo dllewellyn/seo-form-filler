@@ -11,44 +11,179 @@ async function getServerUrl() {
     }
 }
 
-let allTargets = [];
-
-document.addEventListener('DOMContentLoaded', () => {
-    loadProfile();
-    loadTargets();
-
-    document.getElementById('autofill-btn').addEventListener('click', triggerAutofill);
-    document.getElementById('status-filter').addEventListener('change', renderTargets);
-    document.getElementById('settings-link').addEventListener('click', (e) => {
-        e.preventDefault();
-        chrome.runtime.openOptionsPage();
-    });
-});
-
-async function loadProfile() {
-    const serverUrl = await getServerUrl();
+async function getProfileId() {
     try {
-        const res = await fetch(`${serverUrl}/api/extension/profile`);
-        if (!res.ok) throw new Error('Failed to fetch profile');
-        const profile = await res.json();
-
-        let desc = profile.shortDescription || "No description available.";
-        if (desc.length > 100) desc = desc.substring(0, 97) + "...";
-
-        document.getElementById('profile-summary').innerHTML = `
-            <strong>${profile.targetUrl || "Unknown Target"}</strong><br>
-            <span style="font-size: 12px; color: #64748b;">${desc}</span>
-        `;
+        const result = await chrome.storage.sync.get(['profileId']);
+        return result.profileId || '';
     } catch (err) {
-        document.getElementById('profile-summary').textContent = "Could not load profile. Is backend running?";
-        console.error(err);
+        console.error('Failed to get profile ID from storage:', err);
+        return '';
     }
 }
 
-async function loadTargets() {
+let allTargets = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Setup event listeners
+    document.getElementById('autofill-btn').addEventListener('click', triggerAutofill);
+    document.getElementById('status-filter').addEventListener('change', renderTargets);
+
+    document.querySelectorAll('.open-settings-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            chrome.runtime.openOptionsPage().catch(err => {
+                console.error('Could not open options page:', err);
+            });
+        });
+    });
+
+    document.getElementById('login-btn').addEventListener('click', handleLogin);
+    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+
+    // Check auth state
+    const token = await getValidToken();
+    if (token) {
+        showAppView();
+        loadProfilesList(token);
+    } else {
+        showLoginView();
+    }
+});
+
+function showLoginView() {
+    document.getElementById('app-view').style.display = 'none';
+    document.getElementById('login-view').style.display = 'block';
+}
+
+function showAppView() {
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('app-view').style.display = 'block';
+}
+
+async function handleLogin() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const errorDiv = document.getElementById('login-error');
+    const loginBtn = document.getElementById('login-btn');
+
+    if (!email || !password) {
+        errorDiv.textContent = 'Please enter both email and password.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    loginBtn.disabled = true;
+    errorDiv.style.display = 'none';
+    loginBtn.textContent = 'Logging in...';
+
+    const result = await loginWithEmail(email, password);
+
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Log In';
+
+    if (result.success) {
+        const token = await getValidToken();
+        showAppView();
+        loadProfilesList(token);
+    } else {
+        errorDiv.textContent = result.error || 'Login failed.';
+        errorDiv.style.display = 'block';
+    }
+}
+
+async function handleLogout() {
+    await logout();
+    showLoginView();
+    document.getElementById('profile-summary').innerHTML = 'Loading profile...';
+    document.getElementById('profile-select').innerHTML = '<option value="">Loading profiles...</option>';
+    document.getElementById('targets-list').innerHTML = 'Loading targets...';
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-password').value = '';
+}
+
+async function loadProfilesList(token) {
     const serverUrl = await getServerUrl();
     try {
-        const res = await fetch(`${serverUrl}/api/extension/targets`);
+        const res = await fetch(`${serverUrl}/api/profiles`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) {
+            handleLogout(); // force logout if token is invalid
+            throw new Error('Unauthorized');
+        }
+        if (!res.ok) throw new Error('Failed to fetch profiles');
+
+        const profiles = await res.json();
+        const select = document.getElementById('profile-select');
+        select.innerHTML = '';
+
+        if (!profiles || profiles.length === 0) {
+            select.innerHTML = '<option value="">No profiles found</option>';
+            document.getElementById('profile-summary').innerHTML = "<em>Please create a profile in the main app.</em>";
+            return;
+        }
+
+        profiles.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.id;
+            option.textContent = p.targetUrl || p.id;
+
+            let desc = p.shortDescription || "No description available.";
+            if (desc.length > 100) desc = desc.substring(0, 97) + "...";
+            option.dataset.targetUrl = p.targetUrl || "Unknown Target";
+            option.dataset.desc = desc;
+
+            select.appendChild(option);
+        });
+
+        // Event listener for change
+        select.addEventListener('change', async (e) => {
+            const selectedId = e.target.value;
+            const selectedOption = e.target.selectedOptions[0];
+            await chrome.storage.sync.set({ profileId: selectedId });
+
+            document.getElementById('profile-summary').innerHTML = `
+                <strong>${selectedOption.dataset.targetUrl}</strong><br>
+                <span style="font-size: 12px; color: #64748b;">${selectedOption.dataset.desc}</span>
+            `;
+
+            loadTargets(token);
+        });
+
+        // Select the saved one or the first one
+        const currentId = await getProfileId();
+        if (currentId && profiles.some(p => p.id === currentId)) {
+            select.value = currentId;
+        } else {
+            select.value = profiles[0].id;
+        }
+
+        // Trigger the change event manually to initialize the summary and loadTargets
+        select.dispatchEvent(new Event('change'));
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById('profile-select').innerHTML = '<option value="">Error loading profiles.</option>';
+        document.getElementById('profile-summary').innerHTML = `<span style="color: #ef4444;">Error loading profile. Check settings and server connection.</span>`;
+    }
+}
+
+async function loadTargets(token) {
+    const serverUrl = await getServerUrl();
+    const profileId = await getProfileId();
+
+    if (!profileId) {
+        document.getElementById('targets-list').innerHTML = "<em>Please configure Profile ID in settings.</em>";
+        return;
+    }
+
+    try {
+        const res = await fetch(`${serverUrl}/api/extension/targets?profileId=${profileId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) {
+            throw new Error('Unauthorized');
+        }
         if (!res.ok) throw new Error('Failed to fetch targets');
         allTargets = await res.json() || [];
         renderTargets();

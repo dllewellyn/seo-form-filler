@@ -137,8 +137,24 @@
         <p class="help-text">The base URL of your SEO Agent backend server (without trailing slash)</p>
         
         <div class="presets">
-            <button class="preset-btn" data-url="http://localhost:8080">Localhost (Default)</button>
-            <button class="preset-btn" data-url="https://your-app.run.app">Cloud Run</button>
+            <button class="preset-btn" data-url="http://localhost:8080">Localhost Server</button>
+            <button class="preset-btn" data-url="https://your-app.run.app">Cloud Run Server</button>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <label for="firebase-auth-url">Firebase Auth URL</label>
+            <input type="text" id="firebase-auth-url" placeholder="http://localhost:9099/identitytoolkit.googleapis.com/v1" />
+            <p class="help-text">Base URL for Firebase Auth REST operations</p>
+            <div class="presets">
+                <button class="preset-btn auth-preset-btn" data-url="http://localhost:9099/identitytoolkit.googleapis.com/v1">Local Auth Emulator</button>
+                <button class="preset-btn auth-preset-btn" data-url="https://identitytoolkit.googleapis.com/v1">Production Auth API</button>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <label for="firebase-api-key">Firebase Web API Key</label>
+            <input type="password" id="firebase-api-key" placeholder="AIzaSy..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem;" />
+            <p class="help-text">Required to perform login. Find this in your Firebase Project Settings.</p>
         </div>
 
         <div style="margin-top: 20px;">

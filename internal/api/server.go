@@ -25,10 +25,13 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("/api/profile/generate", handlers.RequireAuth(authClient, s.handlers.ProfileGenerate))
 	mux.HandleFunc("/api/profile", handlers.RequireAuth(authClient, s.handlers.ProfileUpdate))
+	mux.HandleFunc("/api/profile/get", handlers.RequireAuth(authClient, s.handlers.ProfileGet))
+	mux.HandleFunc("/api/profile/delete", handlers.RequireAuth(authClient, s.handlers.ProfileDelete))
 	mux.HandleFunc("/api/profiles", handlers.RequireAuth(authClient, s.handlers.ProfilesList))
 	mux.HandleFunc("/api/research/start", handlers.RequireAuth(authClient, s.handlers.ResearchStart))
+	mux.HandleFunc("/api/research/outreach", handlers.RequireAuth(authClient, s.handlers.ResearchOutreachStart))
 	mux.HandleFunc("/api/pitch/draft", s.handlers.PitchDraft)
-	mux.HandleFunc("/api/extension/targets", s.handlers.ExtensionTargets)
-	mux.HandleFunc("/api/extension/profile", s.handlers.ExtensionProfile)
-	mux.HandleFunc("/api/extension/autofill", s.handlers.ExtensionAutofill)
+	mux.HandleFunc("/api/extension/targets", handlers.RequireAuth(authClient, s.handlers.ExtensionTargets))
+	mux.HandleFunc("/api/extension/profile", handlers.RequireAuth(authClient, s.handlers.ExtensionProfile))
+	mux.HandleFunc("/api/extension/autofill", handlers.RequireAuth(authClient, s.handlers.ExtensionAutofill))
 }

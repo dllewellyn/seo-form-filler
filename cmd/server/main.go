@@ -10,17 +10,20 @@ import (
 	"github.com/dllewellyn/seo-backlink-trello/internal/api"
 	"github.com/dllewellyn/seo-backlink-trello/internal/db"
 	"github.com/firebase/genkit/go/genkit"
+	"github.com/joho/godotenv"
 	session "google.golang.org/adk/session"
 )
 
 func main() {
+	// Load environment variables from .env file
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, relying on system environment variables")
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-
-	// Set Emulator Host for local development
-	os.Setenv("FIRESTORE_EMULATOR_HOST", "localhost:8081")
 
 	ctx := context.Background()
 

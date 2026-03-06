@@ -51,12 +51,18 @@ func InitAgents(ctx context.Context, dbClient *db.Client, g *genkit.Genkit) (map
 		return nil, err
 	}
 
+	outreachAgent, err := NewOutreachAgent(model)
+	if err != nil {
+		return nil, err
+	}
+
 	agents := map[string]adkagent.Agent{
 		"profile_generator": profileGenerator,
 		"researcher":        researcher,
 		"form_filler":       formFiller,
 		"pitch":             pitchAgent,
 		"extraction":        extractionAgent,
+		"outreach":          outreachAgent,
 	}
 
 	return agents, nil

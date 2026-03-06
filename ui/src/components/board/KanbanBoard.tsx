@@ -18,17 +18,35 @@ import type { Column, Target } from '../../types';
 import ColumnContainer from './ColumnContainer';
 import TargetCard from './TargetCard';
 
-const defaultCols: Column[] = [
+const directoryCols: Column[] = [
     { id: 'shortlist', title: 'Shortlist' },
     { id: 'in-progress', title: 'In Progress' },
     { id: 'submitted', title: 'Submitted' },
-    { id: 'contacted', title: 'Contacted' },
     { id: 'rejected', title: 'Rejected' },
 ];
 
-export default function KanbanBoard({ profileId }: { profileId: string }) {
+const outreachCols: Column[] = [
+    { id: 'shortlist', title: 'Shortlist' },
+    { id: 'drafting', title: 'Drafting' },
+    { id: 'pitched', title: 'Pitched' },
+    { id: 'rejected', title: 'Rejected' },
+];
+
+async function triggerPitchDraft(targetId: string, profileId: string) {
+    try {
+        await fetch('/api/pitch/draft', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetId, profileId }),
+        });
+    } catch (err) {
+        console.error('Failed to trigger pitch draft:', err);
+    }
+}
+
+export default function KanbanBoard({ profileId, targetType }: { profileId: string, targetType: 'directory' | 'outreach' }) {
     const { user } = useAuth();
-    const [columns] = useState<Column[]>(defaultCols);
+    const columns = targetType === 'directory' ? directoryCols : outreachCols;
     const [targets, setTargets] = useState<Target[]>([]);
     const [activeTarget, setActiveTarget] = useState<Target | null>(null);
 
@@ -37,7 +55,8 @@ export default function KanbanBoard({ profileId }: { profileId: string }) {
 
         const q = query(
             collection(db, "targets"),
-            where("profileId", "==", profileId)
+            where("profileId", "==", profileId),
+            where("type", "==", targetType)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -48,7 +67,7 @@ export default function KanbanBoard({ profileId }: { profileId: string }) {
             setTargets(dbTargets);
         });
         return () => unsubscribe();
-    }, []);
+    }, [profileId, user, targetType]);
 
     const columnsId = useMemo(() => columns.map((col) => col.id), [columns]);
 
@@ -119,8 +138,16 @@ export default function KanbanBoard({ profileId }: { profileId: string }) {
 
                 if (targets[activeIndex].columnId !== targets[overIndex].columnId) {
                     const newColumnId = targets[overIndex].columnId;
+                    const previousColumnId = targets[activeIndex].columnId;
                     targets[activeIndex].columnId = newColumnId;
+
                     updateDoc(doc(db, "targets", active.id.toString()), { columnId: newColumnId }).catch(console.error);
+
+                    // Trigger pitch generation when moving into Drafting
+                    if (newColumnId === 'drafting' && previousColumnId !== 'drafting') {
+                        triggerPitchDraft(active.id.toString(), profileId);
+                    }
+
                     return arrayMove(targets, activeIndex, overIndex - 1);
                 }
 
@@ -135,8 +162,16 @@ export default function KanbanBoard({ profileId }: { profileId: string }) {
             setTargets((targets) => {
                 const activeIndex = targets.findIndex((t) => t.id === active.id);
                 const newColumnId = over.id;
+                const previousColumnId = targets[activeIndex].columnId;
                 targets[activeIndex].columnId = newColumnId;
+
                 updateDoc(doc(db, "targets", active.id.toString()), { columnId: newColumnId }).catch(console.error);
+
+                // Trigger pitch generation when moving into Drafting
+                if (newColumnId === 'drafting' && previousColumnId !== 'drafting') {
+                    triggerPitchDraft(active.id.toString(), profileId);
+                }
+
                 return arrayMove(targets, activeIndex, activeIndex);
             });
         }

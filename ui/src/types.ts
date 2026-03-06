@@ -8,11 +8,13 @@ export type Column = {
 export type Target = {
   id: Id;
   columnId: Id;
+  type: 'directory' | 'outreach';
   domain: string;
   url: string;
   targetUrl: string;
   pitchDraft?: string;
   notes?: string;
+  isGeneratingPitch?: boolean;
 };
 
 export type Profile = {

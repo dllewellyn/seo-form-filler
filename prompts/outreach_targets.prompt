@@ -1,0 +1,22 @@
+---
+model: googleai/gemini-3-pro-preview
+input:
+  schema:
+    company_profile: any
+    existing_targets: string
+---
+Here is the company profile:
+{{company_profile}}
+
+Existing targets (DO NOT RETURN THESE):
+{{existing_targets}}
+
+Find 20 NEW cold outreach backlink opportunities for this company. 
+These should be blogs, news sites, or resource pages that would be interested in featuring or linking to this company.
+Focus on:
+- 10 niche-specific blogs or publications related to the company's industry.
+- 10 resource pages or listicles (e.g., "Best Tools for X") where the company would be a relevant addition.
+
+Return the result EXACTLY as a JSON array of objects with fields:
+- "domain": string (e.g. "techcrunch.com")
+- "url": string (e.g. "https://techcrunch.com/contact")

@@ -1,35 +1,71 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { Check, Edit2, Cloud } from 'lucide-react'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
+import { Check, Edit2, Cloud, FileText, Loader2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Review() {
     const navigate = useNavigate()
     const location = useLocation()
+    const { profileId } = useParams()
     const { user } = useAuth()
 
-    const initialUrl = location.state?.targetUrl || 'Unknown URL'
-    const generatedProfile = location.state?.profile || null
+    const isEditMode = !!profileId;
 
-    const [isEditing, setIsEditing] = useState(false)
+    const [isEditing, setIsEditing] = useState(isEditMode) // Default to editing if in edit mode
+    const [isLoading, setIsLoading] = useState(isEditMode) // Loading if we need to fetch
     const [isStarting, setIsStarting] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
+    const [initialUrl, setInitialUrl] = useState(location.state?.targetUrl || 'Unknown URL');
+    const [generatedProfileId, setGeneratedProfileId] = useState(location.state?.profile?.id || null);
 
     const [profile, setProfile] = useState({
-        companyName: generatedProfile?.companyName || '',
-        shortDescription: generatedProfile?.shortDescription || '',
-        longDescription: generatedProfile?.longDescription || '',
-        keywords: generatedProfile?.keywords ? generatedProfile.keywords.join(', ') : '',
-        founderName: generatedProfile?.founderName || '',
-        dynamicFields: generatedProfile?.dynamicFields || {} as Record<string, string>
+        companyName: location.state?.profile?.companyName || '',
+        shortDescription: location.state?.profile?.shortDescription || '',
+        longDescription: location.state?.profile?.longDescription || '',
+        keywords: location.state?.profile?.keywords ? location.state.profile.keywords.join(', ') : '',
+        founderName: location.state?.profile?.founderName || '',
+        dynamicFields: location.state?.profile?.dynamicFields || {} as Record<string, string>
     })
 
     const [newFieldName, setNewFieldName] = useState('')
 
     const isInitialMount = useRef(true);
 
+    // Fetch existing profile if in edit mode
     useEffect(() => {
-        if (isInitialMount.current) {
+        const fetchProfile = async () => {
+            if (!isEditMode || !user || !profileId) return;
+            try {
+                const token = await user.getIdToken();
+                const res = await fetch(`/api/profile/get?profileId=${profileId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setInitialUrl(data.targetUrl);
+                    setGeneratedProfileId(data.id);
+                    setProfile({
+                        companyName: data.companyName || '',
+                        shortDescription: data.shortDescription || '',
+                        longDescription: data.longDescription || '',
+                        keywords: data.keywords ? data.keywords.join(', ') : '',
+                        founderName: data.founderName || '',
+                        dynamicFields: data.dynamicFields || {}
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch profile", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProfile();
+    }, [isEditMode, profileId, user]);
+
+    // Auto-save logic
+    useEffect(() => {
+        if (isInitialMount.current || isLoading) {
             isInitialMount.current = false;
             return;
         }
@@ -54,7 +90,7 @@ export default function Review() {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    id: generatedProfile?.id,
+                    id: generatedProfileId,
                     targetUrl: initialUrl,
                     companyName: updatedProfile.companyName,
                     shortDescription: updatedProfile.shortDescription,
@@ -79,30 +115,43 @@ export default function Review() {
         setIsEditing(!isEditing)
     }
 
-    const handleStartResearch = async () => {
+    const handlePrimaryAction = async () => {
         setIsStarting(true)
         try {
             if (!user) return;
             const token = await user.getIdToken();
 
-            // Ensure latest state is saved before starting
+            // Ensure latest state is saved before leaving
             await saveProfile(profile)
 
-            // 2. Trigger Researcher Agent (Pass the Profile ID)
-            await fetch('/api/research/start', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ profileId: generatedProfile?.id })
-            });
+            if (isEditMode) {
+                // If editing, just return to board
+                navigate(`/board/${generatedProfileId}`)
+            } else {
+                // If new profile, start research phase
+                await fetch('/api/research/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ profileId: generatedProfileId })
+                });
 
-            navigate(`/board/${generatedProfile?.id}`)
+                navigate(`/board/${generatedProfileId}`)
+            }
         } catch (e) {
             console.error(e)
             setIsStarting(false)
         }
+    }
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+        )
     }
 
     return (
@@ -110,11 +159,11 @@ export default function Review() {
             <div className="md:flex md:items-center md:justify-between mb-10">
                 <div className="flex-1 min-w-0 flex items-center gap-5">
                     <div className="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20 backdrop-blur-sm shadow-inner">
-                        <Check className="text-emerald-600 w-8 h-8" />
+                        {isEditMode ? <FileText className="text-blue-600 w-8 h-8" /> : <Check className="text-emerald-600 w-8 h-8" />}
                     </div>
                     <div>
                         <h2 className="text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl sm:truncate tracking-tight">
-                            Profile Generated
+                            {isEditMode ? 'Edit Profile' : 'Profile Generated'}
                         </h2>
                         <div className="flex items-center gap-3">
                             <p className="text-base text-slate-500 mt-2 font-medium flex items-center gap-2">
@@ -138,16 +187,16 @@ export default function Review() {
                         {isEditing ? 'View Mode' : 'Edit Profile'}
                     </button>
                     <button
-                        onClick={handleStartResearch}
+                        onClick={handlePrimaryAction}
                         disabled={isStarting}
                         className="btn-primary disabled:opacity-70"
                     >
                         {isStarting ? (
                             <span className="flex items-center gap-2">
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                Starting...
+                                {isEditMode ? 'Saving...' : 'Starting...'}
                             </span>
-                        ) : 'Start Research Phase'}
+                        ) : (isEditMode ? 'Save & Return' : 'Start Research Phase')}
                     </button>
                 </div>
             </div>

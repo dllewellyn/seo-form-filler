@@ -244,3 +244,86 @@ func (h *Handlers) ProfilesList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(profiles)
 }
+
+func (h *Handlers) ProfileGet(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	profileID := r.URL.Query().Get("profileId")
+	if profileID == "" {
+		http.Error(w, "Bad Request: Missing profileId", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	doc, err := h.DB.Firestore.Collection("profiles").Doc(profileID).Get(ctx)
+	if err != nil {
+		log.Printf("Failed to get profile: %v", err)
+		http.Error(w, "Profile not found", http.StatusNotFound)
+		return
+	}
+
+	var p db.Profile
+	doc.DataTo(&p)
+
+	if p.UserID != userID && p.UserID != "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(p)
+}
+
+func (h *Handlers) ProfileDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := r.Context().Value(UserIDKey).(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	profileID := r.URL.Query().Get("profileId")
+	if profileID == "" {
+		http.Error(w, "Bad Request: Missing profileId", http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	doc, err := h.DB.Firestore.Collection("profiles").Doc(profileID).Get(ctx)
+	if err != nil {
+		log.Printf("Failed to get profile to delete: %v", err)
+		http.Error(w, "Profile not found", http.StatusNotFound)
+		return
+	}
+
+	var p db.Profile
+	doc.DataTo(&p)
+
+	if p.UserID != userID && p.UserID != "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	_, err = h.DB.Firestore.Collection("profiles").Doc(profileID).Delete(ctx)
+	if err != nil {
+		log.Printf("Failed to delete profile: %v", err)
+		http.Error(w, "Failed to delete profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}

@@ -19,6 +19,7 @@ func NewFormFiller(model adkmodel.LLM, extractionAgent adkagent.Agent) (adkagent
 		
 		CRITICAL INSTRUCTION: If you encounter a complex field that requires specific information you DO NOT have in the Master Profile (e.g., Postcode, Telephone, specific Support Email), you MUST use the provided 'extraction_agent' tool FIRST to find that information on the target website. Only output a final DOM action once you have the required info!
 
+		UNDER NO CIRCUMSTANCES should you output plain text summaries or conversational responses. ALL responses from you MUST be the final JSON object.
 		If the form is completely filled and submitted or there is nothing left to do, output a STOP action.
 		Final output MUST be a valid JSON object representing a SINGLE action. DO NOT wrap it in an array or markdown block. 
 		The object must strictly follow this schema:

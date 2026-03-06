@@ -32,7 +32,7 @@ Your goal is to find the information requested in 'requested_field' on the websi
 
 1. Use the scrape_page tool to fetch the content from target_url.
 2. If the information is found, IMMEDIATELY call the save_extracted_field tool with the field name and the value.
-3. Then return a summary of what you found. If you cannot find it after reviewing the page, return a message saying it could not be found.`,
+3. Then return a concise factual statement of what was extracted or missing. Do not use conversational language like "Here is a summary...".`,
 		InputSchema: &genai.Schema{
 			Type: genai.TypeObject,
 			Properties: map[string]*genai.Schema{
