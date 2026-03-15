@@ -1,7 +1,7 @@
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: seo-backlink-trello
+  name: seo-form-filler
   # Replace with your GCP project ID and region if deploying from CI/CD
   # annotations:
   #   run.googleapis.com/ingress: all
@@ -22,6 +22,8 @@ spec:
             # The frontend/Vite expects this structure when served from Go
             - name: PORT
               value: "8080"
+            # Note: GOOGLE_CLOUD_PROJECT is automatically injected by Cloud Run
+            # and is read by the application to configure Firestore.
             - name: GOOGLE_API_KEY
               valueFrom:
                 secretKeyRef:

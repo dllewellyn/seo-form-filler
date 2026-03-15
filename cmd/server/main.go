@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/dllewellyn/seo-backlink-trello/internal/agent"
 	"github.com/dllewellyn/seo-backlink-trello/internal/api"
@@ -24,6 +26,18 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+
+	mux := http.NewServeMux()
+
+	// Start the HTTP server immediately so Cloud Run can detect the open port
+	// within the startup timeout. Initialization happens below before routes
+	// are registered, but the listener is already accepting connections.
+	go func() {
+		log.Printf("Server listening on port %s...", port)
+		if err := http.ListenAndServe(":"+port, mux); err != nil {
+			log.Fatalf("Server failed: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 
@@ -46,18 +60,19 @@ func main() {
 
 	sessionSvc := session.InMemoryService()
 
-	// Setup Server and Routes
-	mux := http.NewServeMux()
-
 	// Serve React UI from ui/dist
 	fs := http.FileServer(http.Dir("./ui/dist"))
 	mux.Handle("/", fs)
 
+	// Register API routes now that all dependencies are initialised
 	srv := api.NewServer(dbClient, agents, sessionSvc, g)
 	srv.RegisterRoutes(mux)
 
-	log.Printf("Server starting on port %s...", port)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
-		log.Fatalf("Server failed: %v", err)
-	}
+	log.Println("Server fully initialised and ready to serve requests")
+
+	// Wait for a termination signal (e.g. SIGTERM from Cloud Run) before exiting
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutdown signal received, exiting")
 }

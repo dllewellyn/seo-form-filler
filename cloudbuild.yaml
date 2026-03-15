@@ -4,22 +4,22 @@ steps:
     args:
       - 'build'
       - '-t'
-      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-backlink-trello:$COMMIT_SHA'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-form-filler:$COMMIT_SHA'
       - '-t'
-      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-backlink-trello:latest'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-form-filler:latest'
       - '.'
 
   # Push the image tagged with the commit SHA
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-backlink-trello:$COMMIT_SHA'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-form-filler:$COMMIT_SHA'
 
   # Push the image tagged as latest
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-backlink-trello:latest'
+      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-form-filler:latest'
 
   # Substitute the placeholder image URL in cloudrun.yaml and deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -27,13 +27,13 @@ steps:
     args:
       - '-c'
       - |
-        sed 's|DOCKER_IMAGE_URL_PLACEHOLDER|$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-backlink-trello:$COMMIT_SHA|g' cloudrun.yaml > /tmp/cloudrun-deploy.yaml
+        sed 's|DOCKER_IMAGE_URL_PLACEHOLDER|$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-form-filler:$COMMIT_SHA|g' cloudrun.yaml > /tmp/cloudrun-deploy.yaml
         gcloud run services replace /tmp/cloudrun-deploy.yaml --region=$_REGION
 
 # Store the built images in Artifact Registry
 images:
-  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-backlink-trello:$COMMIT_SHA'
-  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-backlink-trello:latest'
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-form-filler:$COMMIT_SHA'
+  - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPOSITORY/seo-form-filler:latest'
 
 # Substitution variable defaults (override in Cloud Build trigger settings)
 substitutions:
