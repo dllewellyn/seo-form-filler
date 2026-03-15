@@ -51,9 +51,13 @@ type Client struct {
 }
 
 func InitFirestore(ctx context.Context) (*Client, error) {
-	// Let the Firebase Admin SDK find credentials automatically
-	// Make sure FIRESTORE_EMULATOR_HOST is set during local dev
-	conf := &firebase.Config{ProjectID: "demo-seo-backlink"}
+	// Read project ID from environment; Cloud Run automatically sets GOOGLE_CLOUD_PROJECT.
+	// Fall back to "demo-seo-backlink" for local development with the Firebase emulator.
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	if projectID == "" {
+		projectID = "demo-seo-backlink"
+	}
+	conf := &firebase.Config{ProjectID: projectID}
 	app, err := firebase.NewApp(ctx, conf)
 	if err != nil {
 		return nil, fmt.Errorf("error initializing app: %v", err)
