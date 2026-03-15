@@ -1,5 +1,5 @@
 # Build the React/Vite UI
-FROM node:18-alpine AS ui-builder
+FROM node:20-alpine AS ui-builder
 WORKDIR /app/ui
 COPY ui/package*.json ./
 RUN npm ci
