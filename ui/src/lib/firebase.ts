@@ -12,12 +12,14 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Only connect to emulator once
-if (!(db as any)._emulatorConfig) {
-    connectFirestoreEmulator(db, 'localhost', 8081);
-}
-if (!(auth as any).emulatorConfig) {
-    connectAuthEmulator(auth, "http://localhost:9099");
+// Only connect to emulators in development mode, not in Cloud Run production
+if (import.meta.env.DEV) {
+    if (!(db as any)._emulatorConfig) {
+        connectFirestoreEmulator(db, 'localhost', 8081);
+    }
+    if (!(auth as any).emulatorConfig) {
+        connectAuthEmulator(auth, "http://localhost:9099");
+    }
 }
 
 export { db, auth };
