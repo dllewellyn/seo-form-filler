@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
@@ -51,9 +52,17 @@ type Client struct {
 }
 
 func InitFirestore(ctx context.Context) (*Client, error) {
-	// Read project ID from environment; Cloud Run automatically sets GOOGLE_CLOUD_PROJECT.
+	// Read project ID from environment variable first.
+	// If not set, try the GCP metadata server (available in Cloud Run, GCE, GKE, etc.).
 	// Fall back to "demo-seo-backlink" for local development with the Firebase emulator.
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	if projectID == "" {
+		if id, err := metadata.ProjectIDWithContext(ctx); err == nil && id != "" {
+			projectID = id
+		} else if err != nil {
+			log.Printf("Could not detect project ID from GCP metadata server: %v", err)
+		}
+	}
 	if projectID == "" {
 		projectID = "demo-seo-backlink"
 	}
