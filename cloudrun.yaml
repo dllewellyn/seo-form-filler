@@ -22,8 +22,8 @@ spec:
             # The frontend/Vite expects this structure when served from Go
             - name: PORT
               value: "8080"
-            # Note: GOOGLE_CLOUD_PROJECT is automatically injected by Cloud Run
-            # and is read by the application to configure Firestore.
+            # Note: GOOGLE_CLOUD_PROJECT can be set explicitly here or the application
+            # will detect the project ID from the GCP metadata server at runtime.
             - name: GOOGLE_API_KEY
               valueFrom:
                 secretKeyRef:
